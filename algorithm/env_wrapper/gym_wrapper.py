@@ -43,7 +43,7 @@ def start_gym(env_name, render, conn):
     except KeyboardInterrupt:
         pass
     except Exception as e:
-        logger.error(e)
+        logger.error(repr(e))
 
     logger.warning(f'Process {os.getpid()} exits')
 
