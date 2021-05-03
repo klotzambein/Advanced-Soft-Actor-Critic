@@ -11,7 +11,7 @@ gym.envs.register(
     id="MyOpensimEnv-v1", 
     entry_point=OpenSimEnv,
     max_episode_steps=1000,
-    kwargs = {"visualize": True, "data_dir": "/home/robin/Desktop/rug-bachelor-project/data"}
+    kwargs = {"visualize": False, "data_dir": "/home/robin/Desktop/rug-bachelor-project/data"}
 )
 
 if __name__ == '__main__':
@@ -44,5 +44,12 @@ if __name__ == '__main__':
             Main(root_dir, f'envs/{args.env}', args)
     elif sys.platform == 'linux':
         for i in range(args.repeat):
-            Main(root_dir, f'envs/{args.env}', args)
+            try:
+                Main(root_dir, f'envs/{args.env}', args)
+            except Exception as e:
+                print("Error occurred: ", e)
+                # sys.exit()
+                os.kill(os.getpid(), 9)
+
             args.port += 1
+    

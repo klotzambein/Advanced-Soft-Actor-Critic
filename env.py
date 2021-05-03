@@ -5,6 +5,8 @@ import pandas as pd
 import os
 import random
 import time
+import math
+from scipy.special import expit
 
 class OpenSimEnv(Env):
     def __init__(self, data_dir, visualize: bool, integrator_accuracy=1e-2, model_name="OS4_gait14dof15musc_2act_LTFP_VR_Joint_Fix.osim"):
@@ -122,6 +124,14 @@ class OpenSimEnv(Env):
 
         return { "human": human, "prosthesis": prosthesis }
 
+    def observation_array_normalized(self, observation):
+        obs_arrays = self.observation_arrays(observation)
+        obs_array = np.append(obs_arrays["human"], obs_arrays["prosthesis"])
+        if np.isnan(np.sum(obs_array)):
+            print("NaN in observation array")
+        obs_array = expit(obs_array)
+        return obs_array
+
     def imitation_reward(self, t, imitation_data, observation):
         if len(imitation_data.index) >= t:
             return 1
@@ -193,8 +203,6 @@ class OpenSimEnv(Env):
         return 0.6 * im_rew + 0.4 * goal_rew
 
     def step(self, action):
-        # print("Step: ", os.getpid())
-        
         """Run one timestep of the environment's dynamics. When end of
         episode is reached, you are responsible for calling `reset()`
         to reset this environment's state.
@@ -226,10 +234,14 @@ class OpenSimEnv(Env):
         self.t += 1
         
         observation = self.env.get_observation_dict()
-        obs_arrays = self.observation_arrays(observation)
-        obs_array = np.append(obs_arrays["human"], obs_arrays["prosthesis"])
-
+        obs_array = self.observation_array_normalized(observation)
+        
         reward = self.reward(self.t, observation)
+
+        if math.isnan(reward):
+            print("Rewards is NAN")
+        if reward > 10.0 or reward < 0.0:
+            print("Rewards is stupid: ", reward)
 
         return obs_array, reward, not not_done, {}
 
@@ -258,6 +270,6 @@ class OpenSimEnv(Env):
         # print("Post init")
 
         observation = self.env.get_observation_dict()
-        arrays = self.observation_arrays(observation)
+        array = self.observation_array_normalized(observation)
 
-        return np.append(arrays["human"], arrays["prosthesis"])
+        return array
