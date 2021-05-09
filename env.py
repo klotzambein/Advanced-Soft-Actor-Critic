@@ -8,11 +8,29 @@ import time
 import math
 from scipy.special import expit
 
+imi_learning_reward_columns = ['pelvis_ty', 'pelvis_tilt', 'pelvis_list', 'ankle_angle_l', 'ankle_angle_r', 'knee_angle_l', 'knee_angle_r', 'hip_flexion_l', 'hip_flexion_r', 'hip_adduction_l', 'hip_adduction_r']
+
+def imi_learning_observ_columns(observations):
+    data = np.zeros(11)
+    data[0] = observations["pelvis"]["height"]
+    data[1] = observations["pelvis"]["pitch"]
+    data[2] = observations["pelvis"]["roll"]
+    data[3] = observations['l_leg']['joint']['ankle']
+    data[4] = observations['r_leg']['joint']['ankle']
+    data[5] = observations['l_leg']['joint']['knee']
+    data[6] = observations['r_leg']['joint']['knee']
+    data[7] = observations['l_leg']['joint']['hip']
+    data[8] = observations['r_leg']['joint']['hip']
+    data[9] = observations['l_leg']['joint']['hip_abd']
+    data[10] = observations['r_leg']['joint']['hip_abd']
+    return data
+
 class OpenSimEnv(Env):
     def __init__(self, data_dir, visualize: bool, integrator_accuracy=1e-2, model_name="OS4_gait14dof15musc_2act_LTFP_VR_Joint_Fix.osim"):
         # print("Init: ", os.getpid())
         self.imitation_data = {}
         self.imitation_data_start_times = {}
+        self.imitation_data_tensor = {}
         for root,dirs,files in os.walk(data_dir):
             # print("Init-walk: ", os.getpid())
             for file in files:
@@ -28,9 +46,11 @@ class OpenSimEnv(Env):
                     
                     self.imitation_data[name] = df
                     # To mitigate reste errors we choose a few start times that are likely to be good.
-                    start_times = [t for t in np.random.randint(0, 500, (100, )) if df["knee_angle_l"][t] > -0.5]
+                    # start_times = [t for t in np.random.randint(0, 500, (100, )) if df["knee_angle_l"][t] > -0.5]
+                    start_times = [0]
                     self.imitation_data_start_times[name] = start_times
 
+                    self.imitation_data_tensor[name] = df.loc[:,imi_learning_reward_columns].values
         
         self.env = RUGTFPEnv(model_name=model_name, visualize=visualize, integrator_accuracy=integrator_accuracy)
         
@@ -129,60 +149,56 @@ class OpenSimEnv(Env):
         obs_array = np.append(obs_arrays["human"], obs_arrays["prosthesis"])
         if np.isnan(np.sum(obs_array)):
             print("NaN in observation array")
-        obs_array = expit(obs_array)
+        # obs_array = expit(obs_array)
+        # print(obs_array)
         return obs_array
 
     def imitation_reward(self, t, imitation_data, observation):
-        if len(imitation_data.index) >= t:
-            return 1
+        obs = imi_learning_observ_columns(observation)
+        diffs = np.sum(np.square(imitation_data - obs), axis=1)
+        loss = np.nanmin(diffs)
+        reward = math.exp(-1 * loss)
+        print(reward)
+        return reward
 
-        imi = imitation_data
-        obs = observation
-
-        pelvis_loss =   (obs["pelvis"]["height"] - imi['pelvis_ty'][t])**2
-
-        pelvis_rot_loss =   (obs["pelvis"]["pitch"] - imi['pelvis_list'][t])**2 +\
-                            (obs["pelvis"]["roll"] - imi['pelvis_tilt'][t])**2
-
-        ankle_loss =    (obs['l_leg']['joint']['ankle'] - imi['ankle_angle_l'][t])**2 +\
-                        (obs['r_leg']['joint']['ankle'] - imi['ankle_angle_r'][t])**2
-
-        knee_loss = (obs['l_leg']['joint']['knee'] - imi['knee_angle_l'][t])**2 +\
-                    (obs['r_leg']['joint']['knee'] - imi['knee_angle_r'][t])**2
-
-        hip_loss =  (obs['l_leg']['joint']['hip']     - imi['hip_flexion_l'][t])**2 +\
-                    (obs['r_leg']['joint']['hip']     - imi['hip_flexion_r'][t])**2 +\
-                    (obs['l_leg']['joint']['hip_abd'] - imi['hip_adduction_l'][t])**2 +\
-                    (obs['r_leg']['joint']['hip_abd'] - imi['hip_adduction_r'][t])**2
-
-        total_position_loss = ankle_loss + knee_loss + hip_loss + pelvis_loss + pelvis_rot_loss
-        pos_reward = np.exp(-2* total_position_loss) 
-
-        # velocity losses
-        pelvis_rot_loss_v = (obs["pelvis"]["vel"][3] - imi['pelvis_tilt_speed'][t])**2 +\
-                            (obs["pelvis"]["vel"][5] - imi['pelvis_rotation_speed'][t])**2 +\
-                            (obs["pelvis"]["vel"][4] - imi['pelvis_list_speed'][t])**2
-
-        pelvis_loss_v = (obs["pelvis"]["vel"][0] - imi['pelvis_tx_speed'][t])**2 +\
-                        (obs["pelvis"]["vel"][1] - imi['pelvis_ty_speed'][t])**2 +\
-                        (obs["pelvis"]["vel"][2] - imi['pelvis_tz_speed'][t])**2 
-
-        ankle_loss_v =  (obs['l_leg']['d_joint']['ankle'] - imi['ankle_angle_l_speed'][t])**2 +\
-                        (obs['r_leg']['d_joint']['ankle'] - imi['ankle_angle_r_speed'][t])**2 
-
-        knee_loss_v =   (obs['l_leg']['d_joint']['knee'] - imi['knee_angle_l_speed'][t])**2 +\
-                        (obs['r_leg']['d_joint']['knee'] - imi['knee_angle_r_speed'][t])**2
-
-        hip_loss_v =    (obs['l_leg']['d_joint']['hip']     - imi['hip_flexion_l_speed'][t])**2 +\
-                        (obs['r_leg']['d_joint']['hip']     - imi['hip_flexion_r_speed'][t])**2 +\
-                        (obs['l_leg']['d_joint']['hip_abd'] - imi['hip_adduction_l_speed'][t])**2 +\
-                        (obs['r_leg']['d_joint']['hip_abd'] - imi['hip_adduction_r_speed'][t])**2
-
-        total_velocity_loss = ankle_loss_v + knee_loss_v + hip_loss_v 
-        velocity_reward = np.exp(-0.1*total_velocity_loss) 
-
-        im_rew =  0.75*pos_reward + 0.25*velocity_reward
-        return im_rew
+    # def imitation_reward(self, t, imitation_data, observation):
+        # if len(imitation_data.index) >= t:
+        #     return 1
+        # imi = imitation_data
+        # obs = observation
+        # pelvis_loss =   (obs["pelvis"]["height"] - imi['pelvis_ty'][t])**2
+        # pelvis_rot_loss =   (obs["pelvis"]["pitch"] - imi['pelvis_tilt'][t])**2 +\
+        #                     (obs["pelvis"]["roll"] - imi['pelvis_list'][t])**2
+        # ankle_loss =    (obs['l_leg']['joint']['ankle'] - imi['ankle_angle_l'][t])**2 +\
+        #                 (obs['r_leg']['joint']['ankle'] - imi['ankle_angle_r'][t])**2
+        # knee_loss = (obs['l_leg']['joint']['knee'] - imi['knee_angle_l'][t])**2 +\
+        #             (obs['r_leg']['joint']['knee'] - imi['knee_angle_r'][t])**2
+        # hip_loss =  (obs['l_leg']['joint']['hip']     - imi['hip_flexion_l'][t])**2 +\
+        #             (obs['r_leg']['joint']['hip']     - imi['hip_flexion_r'][t])**2 +\
+        #             (obs['l_leg']['joint']['hip_abd'] - imi['hip_adduction_l'][t])**2 +\
+        #             (obs['r_leg']['joint']['hip_abd'] - imi['hip_adduction_r'][t])**2
+        # total_position_loss = ankle_loss + knee_loss + hip_loss + pelvis_loss + pelvis_rot_loss
+        # pos_reward = np.exp(-2 * total_position_loss)
+        # # velocity losses
+        # pelvis_rot_loss_v = (obs["pelvis"]["vel"][3] - imi['pelvis_tilt_speed'][t])**2 +\
+        #                     (obs["pelvis"]["vel"][5] - imi['pelvis_rotation_speed'][t])**2 +\
+        #                     (obs["pelvis"]["vel"][4] - imi['pelvis_list_speed'][t])**2
+        # pelvis_loss_v = (obs["pelvis"]["vel"][0] - imi['pelvis_tx_speed'][t])**2 +\
+        #                 (obs["pelvis"]["vel"][1] - imi['pelvis_ty_speed'][t])**2 +\
+        #                 (obs["pelvis"]["vel"][2] - imi['pelvis_tz_speed'][t])**2 
+        # ankle_loss_v =  (obs['l_leg']['d_joint']['ankle'] - imi['ankle_angle_l_speed'][t])**2 +\
+        #                 (obs['r_leg']['d_joint']['ankle'] - imi['ankle_angle_r_speed'][t])**2 
+        # knee_loss_v =   (obs['l_leg']['d_joint']['knee'] - imi['knee_angle_l_speed'][t])**2 +\
+        #                 (obs['r_leg']['d_joint']['knee'] - imi['knee_angle_r_speed'][t])**2
+        # hip_loss_v =    (obs['l_leg']['d_joint']['hip']     - imi['hip_flexion_l_speed'][t])**2 +\
+        #                 (obs['r_leg']['d_joint']['hip']     - imi['hip_flexion_r_speed'][t])**2 +\
+        #                 (obs['l_leg']['d_joint']['hip_abd'] - imi['hip_adduction_l_speed'][t])**2 +\
+        #                 (obs['r_leg']['d_joint']['hip_abd'] - imi['hip_adduction_r_speed'][t])**2
+        # total_velocity_loss = ankle_loss_v + knee_loss_v + hip_loss_v 
+        # velocity_reward = np.exp(-0.1*total_velocity_loss) 
+        # im_rew = pos_reward
+        # # im_rew =  0.75*pos_reward + 0.25*velocity_reward
+        # return im_rew
 
 
     def reward(self, t, observation):
@@ -192,15 +208,18 @@ class OpenSimEnv(Env):
         # closest_clip_speed = np_speeds[closest_clip_ix]
 
         # Constant reward of 0.5 with additional 0.5 for each footstep.
-        goal_rew = 1.0 if self.env.footstep['new'] else 0.5
-        im_rew = self.imitation_reward(t, self.imitation_data[self.current_imitation_data], observation)
+        step_rew = 1.0 if self.env.footstep['new'] else 0.5
+        im_rew = self.imitation_reward(t, self.imitation_data_tensor[self.current_imitation_data], observation)
+        state = self.env.get_state_desc()
+        dist = math.sqrt(state["body_pos"]["pelvis"][0]**2 + state["body_pos"]["pelvis"][2]**2)
+        dist_rev = math.tanh(dist * 0.2) + dist * 0.01
 
         # Comment as it leads to the first action being to fall down
         # However, commented it leads to not moving at all
-        if t<=50:
-           return 0.1 * im_rew + 0.9 * goal_rew
+        # if t<=50:
+        #    return 0.1 * im_rew + 0.9 * step_rew
 
-        return 0.6 * im_rew + 0.4 * goal_rew
+        return 0.5 * im_rew + 0.2 * step_rew + 0.3 * dist_rev
 
     def step(self, action):
         """Run one timestep of the environment's dynamics. When end of
@@ -220,12 +239,13 @@ class OpenSimEnv(Env):
         """
 
         start_time = time.time()
-
+        action[15] = action[15] * 2 - 1
+        action[16] = action[16] * 2 - 1
         try:
-            observation, reward, not_done = self.env.step(action)
+            observation, reward, done = self.env.step(action)
         except RuntimeError as err:
             print("Caught runtime error during step: {}".format(err))
-            not_done = False
+            done = True
 
         time_diff = time.time() - start_time
         if time_diff > 0.99:
@@ -241,9 +261,9 @@ class OpenSimEnv(Env):
         if math.isnan(reward):
             print("Rewards is NAN")
         if reward > 10.0 or reward < 0.0:
-            print("Rewards is stupid: ", reward)
+            print("Rewards is out of reasonable range: ", reward)
 
-        return obs_array, reward, not not_done, {}
+        return obs_array, reward, done, {}
 
     def reset(self):
         self.current_imitation_data = "075-FIX"#random.choice(list(self.imitation_data.keys()))

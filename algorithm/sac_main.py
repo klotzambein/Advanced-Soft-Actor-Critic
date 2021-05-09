@@ -184,6 +184,11 @@ class Main(object):
                 else:
                     action = self.sac.choose_action([o.astype(np.float32) for o in obs_list])
 
+                action = action.numpy()
+
+                if np.isnan(np.sum(action)):
+                    print("Oh no we found a NaN")
+
                 next_obs_list, reward, local_done, max_reached = self.env.step(action[..., :self.d_action_size],
                                                                                action[..., self.d_action_size:])
 

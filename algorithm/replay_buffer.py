@@ -210,8 +210,8 @@ class PrioritizedReplayBuffer:
             data_pointers = self._trans_storage.add(transitions)
             clipped_errors = np.clip(td_error, self.td_error_min, self.td_error_max)
             if np.isnan(np.min(clipped_errors)):
-                logger.error('td_error has nan')
-                raise Exception('td_error has nan')
+                logger.error('td_error has nan 1')
+                raise Exception('td_error has nan 1')
 
             probs = np.power(clipped_errors, self.alpha)
 
@@ -262,8 +262,8 @@ class PrioritizedReplayBuffer:
 
             clipped_errors = np.clip(td_error, self.td_error_min, self.td_error_max)
             if np.isnan(np.min(clipped_errors)):
-                logger.error('td_error has nan')
-                raise Exception('td_error has nan')
+                logger.error('td_error has nan 2')
+                raise Exception('td_error has nan 2')
 
             probs = np.power(clipped_errors, self.alpha)
 

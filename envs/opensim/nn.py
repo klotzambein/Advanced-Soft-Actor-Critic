@@ -28,23 +28,23 @@ class ModelRep(m.representation.ModelBaseSimpleRep):
     def call(self, obs_list):
         return obs_list[0]
 
-class ModelForward(m.ModelForward):
-    def __init__(self, state_dim, action_dim):
-        super().__init__(state_dim, action_dim,
-                         dense_n=state_dim + action_dim, dense_depth=1)
+# class ModelForward(m.ModelForward):
+#     def __init__(self, state_dim, action_dim):
+#         super().__init__(state_dim, action_dim,
+#                          dense_n=state_dim + action_dim, dense_depth=1)
 
 
-class ModelRND(m.ModelBaseRND):
-    def __init__(self, state_dim, action_dim):
-        super().__init__(state_dim, action_dim)
+# class ModelRND(m.ModelBaseRND):
+#     def __init__(self, state_dim, action_dim):
+#         super().__init__(state_dim, action_dim)
 
-        self.dense = tf.keras.Sequential([
-            tf.keras.layers.Dense(32, activation=tf.nn.relu),
-            tf.keras.layers.Dense(32),
-        ])
+#         self.dense = tf.keras.Sequential([
+#             tf.keras.layers.Dense(32, activation=tf.nn.relu),
+#             tf.keras.layers.Dense(32),
+#         ])
 
-    def call(self, state, action):
-        return self.dense(tf.concat([state, action], axis=-1))
+#     def call(self, state, action):
+#         return self.dense(tf.concat([state, action], axis=-1))
 
 
 class ModelQ(m.ModelQ):
@@ -69,16 +69,16 @@ class ModelPolicy(m.ModelBasePolicy):
         p_state_dim = 25
         p_action_dim = 2
 
-        h_mean_depth = 0
-        h_logstd_depth = 0
+        h_mean_depth = 1
+        h_logstd_depth = 1
         h_mean_n = 32
         h_logstd_n = 32
         h_state_dim = 72
         h_action_dim = 15
 
         in_human = layers.Input(shape=(None, None, h_state_dim), name="in_human")
-        layer_h_d1 = layers.Dense(100, name="layer_h_d1")(in_human)
-        layer_h_d2 = layers.Dense(312, name="layer_h_d2")(layer_h_d1)
+        layer_h_d1 = layers.Dense(100, tf.nn.tanh, name="layer_h_d1")(in_human)
+        layer_h_d2 = layers.Dense(312, tf.nn.tanh, name="layer_h_d2")(layer_h_d1)
         
         h_mean_model = tf.keras.Sequential([
             layers.Dense(h_mean_n, tf.nn.relu) for _ in range(h_mean_depth)] + [
@@ -90,8 +90,8 @@ class ModelPolicy(m.ModelBasePolicy):
         ], name='h_logstd_seq')(layer_h_d2)
 
         in_prosthesis = layers.Input(shape=(None, None, p_state_dim), name="in_prosthesis")
-        layer_p_l1 = layers.Dense(32, name="layer_p_l1")(in_prosthesis)
-        layer_p_l2 = layers.Dense(32, name="layer_p_l2")(layer_p_l1)
+        layer_p_l1 = layers.Dense(32, tf.nn.tanh, name="layer_p_l1")(in_prosthesis)
+        layer_p_l2 = layers.Dense(64, tf.nn.tanh, name="layer_p_l2")(layer_p_l1)
         # layer_p_l3 = layers.Dense(32, name="layer_p_l3")(layer_p_l2)
 
         p_mean_model = tf.keras.Sequential([
