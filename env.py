@@ -153,12 +153,21 @@ class OpenSimEnv(Env):
         # print(obs_array)
         return obs_array
 
-    def imitation_reward(self, t, imitation_data, observation):
+    def imitation_reward(self, imitation_data, observation):
         obs = imi_learning_observ_columns(observation)
+
         diffs = np.sum(np.square(imitation_data - obs), axis=1)
-        loss = np.nanmin(diffs)
+
+        current_diffs = diffs[self.clip_t - 1:] 
+        current_diffs *= np.exp(-0.5 * np.abs(np.arange(current_diffs.shape[0]) - 2))
+
+        best_t = np.nanargmin(current_diffs)
+
+        self.clip_t += best_t - 1
+
+        loss = current_diffs[best_t]
         reward = math.exp(-1 * loss)
-        print(reward)
+        # print(reward)
         return reward
 
     # def imitation_reward(self, t, imitation_data, observation):
@@ -201,7 +210,9 @@ class OpenSimEnv(Env):
         # return im_rew
 
 
-    def reward(self, t, observation):
+    def reward(self, observation):
+        return 1
+
         # target_velocity = np.sqrt(target_x_speed**2 + target_z_speed**2)
         # np_speeds = np.array(list(self.k_paths_dict.keys()))
         # closest_clip_ix = (np.abs(np_speeds - target_velocity)).argmin() 
@@ -209,17 +220,18 @@ class OpenSimEnv(Env):
 
         # Constant reward of 0.5 with additional 0.5 for each footstep.
         step_rew = 1.0 if self.env.footstep['new'] else 0.5
-        im_rew = self.imitation_reward(t, self.imitation_data_tensor[self.current_imitation_data], observation)
+        im_rew = self.imitation_reward(self.imitation_data_tensor[self.current_imitation_data], observation)
         state = self.env.get_state_desc()
-        dist = math.sqrt(state["body_pos"]["pelvis"][0]**2 + state["body_pos"]["pelvis"][2]**2)
-        dist_rev = math.tanh(dist * 0.2) + dist * 0.01
+
+        dist = np.abs(state["body_pos"]["pelvis"][0])
+        dist_rev = math.tanh(dist) + dist * 0.01
 
         # Comment as it leads to the first action being to fall down
         # However, commented it leads to not moving at all
-        # if t<=50:
-        #    return 0.1 * im_rew + 0.9 * step_rew
+        # if t<=200:
+        #    return 0.4 * im_rew + 0.6 * dist_rev
 
-        return 0.5 * im_rew + 0.2 * step_rew + 0.3 * dist_rev
+        return 0.6 * im_rew + 0.1 * step_rew + 0.3 * dist_rev
 
     def step(self, action):
         """Run one timestep of the environment's dynamics. When end of
@@ -238,9 +250,12 @@ class OpenSimEnv(Env):
             info (dict): contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
         """
 
+
         start_time = time.time()
-        action[15] = action[15] * 2 - 1
-        action[16] = action[16] * 2 - 1
+        action[0:15] = action[0:15] / 2 + 0.5
+        # action[15] = action[15] * 2 - 1
+        # action[16] = action[16] * 2 - 1
+
         try:
             observation, reward, done = self.env.step(action)
         except RuntimeError as err:
@@ -256,7 +271,10 @@ class OpenSimEnv(Env):
         observation = self.env.get_observation_dict()
         obs_array = self.observation_array_normalized(observation)
         
+
+
         reward = self.reward(self.t, observation)
+
 
         if math.isnan(reward):
             print("Rewards is NAN")
@@ -266,14 +284,17 @@ class OpenSimEnv(Env):
         return obs_array, reward, done, {}
 
     def reset(self):
-        self.current_imitation_data = "075-FIX"#random.choice(list(self.imitation_data.keys()))
+        self.current_imitation_data = "new"#random.choice(list(self.imitation_data.keys()))
         imi = self.imitation_data[self.current_imitation_data]
 
-        self.start_time = self.t = t = random.choice(self.imitation_data_start_times[self.current_imitation_data])
+        t = random.choice(self.imitation_data_start_times[self.current_imitation_data])
+        self.clip_t = t
+        self.start_time = t
+        self.t = t
 
         init_pose = np.array([
-            imi['pelvis_tx_speed'][t], # 0,  # forward speed 
-            imi['pelvis_tz_speed'][t], # 0,  # rightward speed 
+            0, # imi['pelvis_tx_speed'][t], # forward speed 
+            0, # imi['pelvis_tz_speed'][t], # rightward speed 
             imi['pelvis_ty'][t], # 0.94,  # pelvis height 
             imi['pelvis_list'][t], # 0 * np.pi / 180,  # trunk lean 
             imi['hip_adduction_r'][t], # 0 * np.pi / 180,  # [right] hip adduct 

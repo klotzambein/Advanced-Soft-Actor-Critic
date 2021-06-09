@@ -186,8 +186,11 @@ class Main(object):
 
                 action = action.numpy()
 
+                # print(action)
+
                 if np.isnan(np.sum(action)):
-                    print("Oh no we found a NaN")
+                    print("Oh no we found a NaN, this are our params:")
+                    print(self.sac.model_policy.trainable_variables)
 
                 next_obs_list, reward, local_done, max_reached = self.env.step(action[..., :self.d_action_size],
                                                                                action[..., self.d_action_size:])
