@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 import sys
+import traceback
 
 from algorithm.config_helper import set_logger
 
@@ -11,7 +12,7 @@ gym.envs.register(
     id="MyOpensimEnv-v1", 
     entry_point=OpenSimEnv,
     max_episode_steps=1000,
-    kwargs = {"visualize": False, "data_dir": "/home/robin/Desktop/rug-bachelor-project/data"}
+    kwargs = {"visualize": True, "data_dir": "/home/robin/Desktop/rug-bachelor-project/data"}
 )
 
 if __name__ == '__main__':
@@ -47,7 +48,7 @@ if __name__ == '__main__':
             try:
                 Main(root_dir, f'envs/{args.env}', args)
             except Exception as e:
-                print("Error occurred: ", e)
+                print("Error occurred: ", traceback.format_exc())
                 # sys.exit()
                 os.kill(os.getpid(), 9)
 

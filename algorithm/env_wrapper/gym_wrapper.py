@@ -2,6 +2,7 @@ import logging
 import multiprocessing
 import os
 import time
+import traceback
 
 import gym
 import numpy as np
@@ -43,7 +44,7 @@ def start_gym(env_name, render, conn):
     except KeyboardInterrupt:
         pass
     except Exception as e:
-        logger.error(repr(e))
+        logger.error("Error occurred in Process:", traceback.format_exc())
 
     logger.warning(f'Process {os.getpid()} exits')
 
