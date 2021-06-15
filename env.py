@@ -47,7 +47,8 @@ class OpenSimEnv(Env):
                     self.imitation_data[name] = df
                     # To mitigate reset errors we choose a few start times that are likely to be good.
                     # start_times = [df['time'][t] for t in np.random.randint(0, len(df) - 100, (100, )) if df["knee_angle_l"][t] > -0.5]
-                    start_times = [0]
+                    # Start when already walking
+                    start_times = [6.75]
                     self.imitation_data_start_times[name] = start_times
 
                     self.imitation_data_tensor[name] = df.loc[:,imi_learning_reward_columns].values

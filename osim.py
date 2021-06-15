@@ -52,7 +52,7 @@ class OsimModel(object):
         self.contactGeometrySet = self.model.getContactGeometrySet()
         self.actuatorSet = self.model.getActuators()
 
-        self.list_elements()
+        # self.list_elements()
 
         # Add actuators as constant functions. Then, during simulations
         # we will change levels of constants.
@@ -355,7 +355,7 @@ class RUGTFPEnv(OsimModel):
 
     def reset(self, init_pose: 'Pose'):
         self.state = self.model.initializeState()
-        
+
         qt = init_pose.getQ()
         ut = init_pose.getU()
 
@@ -363,7 +363,7 @@ class RUGTFPEnv(OsimModel):
         q = state.getQ()
         u = state.getQDot()
 
-        for i in range(17): 
+        for i in range(17):
             q[i] = qt[i]
             u[i] = ut[i]
 
@@ -560,6 +560,27 @@ def rotate_frame_3D(x, y, z, axis, theta):
 
 
 class Pose:
+    """
+    This is the Layout of the Q vector:
+    00: pelvis tilt 
+    01: pelvis list
+    02: pelvis rotation
+    03: pelvis x
+    04: pelvis y
+    05: pelvis z
+    06: hip flexion right 
+    07: hip abduction right
+    08: (hip ... right)
+    09: hip flexion left
+    10: hip abduction left
+    11: (hip ... left)
+    12: (lumbar ext)
+    13: knee right 
+    14: ankle right
+    15: knee left
+    16: ankle left
+    """
+
     def __init__(self):
         self.pose = np.zeros((17, 2))
         # The lumbar extension is always -5 degree
@@ -578,16 +599,16 @@ class Pose:
         self.pose[3:6, 0] = [x, y, z]
 
     def set_leg_left(self, hip_flexion: float, hip_abduction: float, knee: float, ankle: float):
-        self.pose[6, 0] = hip_flexion
-        self.pose[7, 0] = hip_abduction
-        self.pose[9, 0] = knee
-        self.pose[10, 0] = ankle
+        self.pose[9, 0] = hip_flexion
+        self.pose[10, 0] = hip_abduction
+        self.pose[15, 0] = knee
+        self.pose[16, 0] = ankle
 
     def set_leg_right(self, hip_flexion: float, hip_abduction: float, knee: float, ankle: float):
-        self.pose[11, 0] = hip_flexion
-        self.pose[12, 0] = hip_abduction
-        self.pose[14, 0] = knee
-        self.pose[15, 0] = ankle
+        self.pose[6, 0] = hip_flexion
+        self.pose[7, 0] = hip_abduction
+        self.pose[13, 0] = knee
+        self.pose[14, 0] = ankle
 
     def set_from_dict(self, pose, rotation_scale: float = 1.0):
         rs = rotation_scale
@@ -604,7 +625,7 @@ class Pose:
         self.set_from_dict(pose, rotation_scale=np.pi / 180)
 
     def set_from_q_vector(self, q):
-        for i in range(17): 
+        for i in range(17):
             self.pose[i, 0] = q[i]
 
     def compute_velocities(self, next: 'Pose', delta_time: float):
@@ -616,14 +637,18 @@ class Pose:
         self.pose[:, 1] = (next.pose[:, 0] - self.pose[:, 0]) / delta_time
 
     def is_in_bounds(self, bounds_center: 'Pose', max_angle: float, max_distance: float):
-        delta_pos = abs(self.pose[0:3, 0] - bounds_center.pose[0:3, 0])
-        delta_rot = abs(self.pose[3:16, 0] - bounds_center.pose[3:16, 0])
-        # print(self.pose[16, 0], bounds_center.pose[16, 0])
-        # print((delta_pos < max_distance), (delta_rot < max_angle))
-        return (delta_pos < max_distance).all() and (delta_rot < max_angle).all()
+        delta = abs(self.pose[:, 0] - bounds_center.pose[:, 0])
+
+        pelvis_rot = np.all(delta[0:3] < max_angle)
+        pelvis_pos = np.all(delta[3:6] < max_distance)
+        hip_right = np.all(delta[6:8] < max_angle)
+        hip_left = np.all(delta[9:11] < max_angle)
+        rest = np.all(delta[13:17] < max_angle)
+
+        return pelvis_rot and pelvis_pos and hip_right and hip_left and rest
 
     def getQ(self):
-        return self.pose[:,0]
+        return self.pose[:, 0]
 
     def getU(self):
-        return self.pose[:,1]
+        return self.pose[:, 1]
