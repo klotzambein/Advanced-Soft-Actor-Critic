@@ -231,7 +231,8 @@ class Main(object):
 
             self._log_episode_info(iteration, agents)
 
-            if (p := self.model_abs_dir.joinpath('save_model')).exists():
+            p = self.model_abs_dir.joinpath('save_model')
+            if p.exists():
                 self.sac.save_model()
                 p.unlink()
 
