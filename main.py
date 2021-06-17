@@ -8,13 +8,6 @@ from algorithm.config_helper import set_logger
 import gym
 from env import OpenSimEnv
 
-gym.envs.register(
-    id="MyOpensimEnv-v1", 
-    entry_point=OpenSimEnv,
-    max_episode_steps=1000,
-    kwargs = {"visualize": False, "data_dir": "/home/robin/Desktop/rug-bachelor-project/data"}
-)
-
 if __name__ == '__main__':
     set_logger()
 
@@ -39,7 +32,16 @@ if __name__ == '__main__':
     else:
         from algorithm.sac_main import Main
 
+
+    gym.envs.register(
+        id="MyOpensimEnv-v1", 
+        entry_point=OpenSimEnv,
+        max_episode_steps=1000,
+        kwargs = {"visualize": args.agents == 1, "data_dir": "/home/robin/Desktop/rug-bachelor-project/data"}
+    )
+
     root_dir = Path(__file__).resolve().parent
+    
     if sys.platform == 'win32':
         for _ in range(args.repeat):
             Main(root_dir, f'envs/{args.env}', args)

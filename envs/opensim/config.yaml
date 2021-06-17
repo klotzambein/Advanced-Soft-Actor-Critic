@@ -6,7 +6,7 @@ default:
     build_path: MyOpensimEnv-v1
     
     max_step: -1
-    max_iter: 1000
+    max_iter: 1000000
     n_agents: 30
     reset_on_iteration: true
   replay_config:

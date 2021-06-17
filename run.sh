@@ -5,5 +5,6 @@
 for i in {1..200}
 do
     echo "Run number $i:"
-    python main.py opensim -n "test_nr_14" --agents=30
+    # timeout 45m python main.py opensim -n "test_nr_20" --agents=30
+    python main.py opensim -n "test_nr_20" --agents=30
 done

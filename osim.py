@@ -20,7 +20,7 @@ from opensim import CoordinateActuator
 # methods are enclosed in the OsimEnv class
 class OsimModel(object):
     # Initialize simulation
-    stepsize = 0.01
+    stepsize = 0.002
 
     model_path = None
     state = None
@@ -644,6 +644,8 @@ class Pose:
         hip_right = np.all(delta[6:8] < max_angle)
         hip_left = np.all(delta[9:11] < max_angle)
         rest = np.all(delta[13:17] < max_angle)
+
+        # print(pelvis_rot, pelvis_pos, hip_right, hip_left, rest, delta[13:17] / max_angle)
 
         return pelvis_rot and pelvis_pos and hip_right and hip_left and rest
 

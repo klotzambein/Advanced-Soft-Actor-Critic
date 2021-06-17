@@ -147,7 +147,7 @@ class Main(object):
         is_max_reached = False
         iteration = 0
         trained_steps = 0
-
+        
         while iteration != self.base_config['max_iter']:
             if self.base_config['max_step'] != -1 and trained_steps >= self.base_config['max_step']:
                 break
