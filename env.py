@@ -29,7 +29,7 @@ def imi_learning_observ_columns(observations):
 
 
 class OpenSimEnv(Env):
-    def __init__(self, data_dir, visualize: bool, integrator_accuracy=1e-2, model_name="OS4_gait14dof15musc_2act_LTFP_VR_Joint_Fix.osim"):
+    def __init__(self, data_dir, visualize: bool, save_motion_path = None, integrator_accuracy=1e-2, model_name="OS4_gait14dof15musc_2act_LTFP_VR_Joint_Fix.osim"):
         # print("Init: ", os.getpid())
         self.imitation_data = {}
         self.imitation_data_start_times = {}
@@ -64,6 +64,7 @@ class OpenSimEnv(Env):
 
         self.observation_space = spaces.Box(0, 1, shape=(97, ))
         self.action_space = spaces.Box(0, 1, shape=(17, ))
+        self.save_motion_file = None if save_motion_path is None else open(save_motion_path, 'a')
 
         # print("Init-done: ", os.getpid())
         pass
@@ -215,6 +216,10 @@ class OpenSimEnv(Env):
             done = True
 
         state_desc = self.env.get_state_desc()
+
+        if self.save_motion_file is not None:
+            self.save_motion_file.write(state_desc["pose"].toString())
+            self.save_motion_file.write("\n")
 
         if not self.is_in_bounds(self.t, state_desc):
             done = True

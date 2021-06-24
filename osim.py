@@ -654,3 +654,6 @@ class Pose:
 
     def getU(self):
         return self.pose[:, 1]
+
+    def toString(self):
+        return ",".join([str(x) for x in self.getQ().tolist()])

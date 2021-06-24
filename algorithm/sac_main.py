@@ -184,10 +184,6 @@ class Main(object):
                 else:
                     action = self.sac.choose_action([o.astype(np.float32) for o in obs_list])
 
-                action = action.numpy()
-
-                # print(action)
-
                 if np.isnan(np.sum(action)):
                     print("Oh no we found a NaN, this are our params:")
                     print(self.sac.model_policy.trainable_variables)

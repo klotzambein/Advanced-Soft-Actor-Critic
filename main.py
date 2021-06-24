@@ -38,7 +38,11 @@ if __name__ == '__main__':
         id="MyOpensimEnv-v1", 
         entry_point=OpenSimEnv,
         max_episode_steps=1000,
-        kwargs = {"visualize": args.agents == 1, "data_dir": "/home/robin/Desktop/rug-bachelor-project/data"}
+        kwargs = {
+            "visualize": args.agents == 1, 
+            "save_motion_path": "./test.csv", 
+            "data_dir": "/home/robin/Desktop/rug-bachelor-project/data"
+        }
     )
 
     root_dir = Path(__file__).resolve().parent
