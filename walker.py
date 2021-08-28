@@ -86,14 +86,16 @@ def stablePDWithVel(state, next_target, delta_time):
     return control_p + control_d
 
 def stablePD(state, next_target, delta_time):
-    kp = 0.5
+    kp = 0.9
     kd = 0.0001
     control_p = -kp * (state.pos + delta_time * state.vel - next_target)
     control_d = -kd * (state.vel + delta_time * state.acc)
     return control_p + control_d
 
+delta_time = 1.0 / 200.0
+
 for i in range(1, 10000):
-    target = math.sin(i * math.pi / 200.0) / 3.0
+    target = math.sin(i * math.pi * delta_time) - 1.0
 
     actuatorSet = model.getActuators()
     for j in range(actuatorSet.getSize()):
@@ -105,9 +107,9 @@ for i in range(1, 10000):
         acc = coord.getAccelerationValue(state)
         coord = QTripplet(pos, vel, acc)
 
-        ctrl = stablePD(coord, target, 1 / 200.0)
+        ctrl = stablePD(coord, target if j in [2, 3] else 0, delta_time)
         # print(str(coords[0]) + " -> " + str(ctrl))
         set_action(controller, j, ctrl)
     
-    state = manager.integrate(i / 200.0)
+    state = manager.integrate(i * delta_time)
 
