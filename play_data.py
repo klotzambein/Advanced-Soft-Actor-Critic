@@ -15,6 +15,6 @@ data = pd.read_csv("./test.csv", sep=',', header=None)
 for i in cycle(range(0, len(data), 1)):
     # print(data.iloc[i]['time'])
     pose.set_from_q_vector(data.iloc[i])
-    sleep(0.01)
+    sleep(0.03)
     env.reset(pose)
     env.step(np.zeros(17))

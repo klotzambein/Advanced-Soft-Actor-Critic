@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # conda activate opensim-tf2
-
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/robin/.conda/envs/rug-osim-torch/lib/:/opt/anaconda/lib/
 for i in {1..200}
 do
     echo "Run number $i:"

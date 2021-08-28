@@ -20,7 +20,7 @@ from opensim import CoordinateActuator
 # methods are enclosed in the OsimEnv class
 class OsimModel(object):
     # Initialize simulation
-    stepsize = 0.002
+    stepsize = 0.005
 
     model_path = None
     state = None
@@ -323,7 +323,7 @@ class RUGTFPEnv(OsimModel):
     # HAB_R, HAD_R, HFL_R, GLU_R, HAM_R, RF_R, VAS_R, BFSH_R, GAS_R, SOL_R, TA_R, HAB_L, ADD_L, GLU_L, HFL_L, KNE_ACT, ANK_ACT
 
     def __init__(self, model_name="", visualize=True, integrator_accuracy=5e-5, stepsize=0.01):
-        self.model_path = f"/home/robin/Desktop/rug-opensim-rl/osim/models/{model_name}"
+        self.model_path = f"envs/opensim/{model_name}"
         super().__init__(visualize=visualize, model_path=self.model_path,
                          integrator_accuracy=integrator_accuracy, stepsize=stepsize)
 
@@ -473,6 +473,7 @@ class RUGTFPEnv(OsimModel):
         leg_obs['joint']['hip'] = - \
             state_desc['joint_pos'][f'hip_{side}'][0]  # (+) extension
         # (+) extension
+        
         leg_obs['joint']['knee'] = state_desc['joint_pos'][f'knee_{side}'][0]
         leg_obs['joint']['ankle'] = - \
             state_desc['joint_pos'][f'ankle_{side}'][0]  # (+) extension

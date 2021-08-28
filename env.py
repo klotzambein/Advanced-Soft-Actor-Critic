@@ -173,7 +173,7 @@ class OpenSimEnv(Env):
         pose.set_from_dict_degrees(bounds)
 
         # return True
-        return obs["pose"].is_in_bounds(pose, 20 * np.pi / 180, 0.5)
+        return obs["pose"].is_in_bounds(pose, 40 * np.pi / 180, 0.5)
 
     def step(self, action):
         """Run one timestep of the environment's dynamics. When end of
@@ -194,9 +194,10 @@ class OpenSimEnv(Env):
 
         # Fix action space
         action[0:15] = action[0:15] / 2 + 0.5
+        # print(action[15:])
 
         # Reward is one, because the model is constraint to feasible regions
-        reward = self.env.stepsize
+        reward = self.env.stepsize * 1000
         done = False
 
         try:

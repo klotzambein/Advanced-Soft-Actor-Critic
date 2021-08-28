@@ -1,0 +1,1 @@
+Copy the geometry files from the rug-opensim-rl repo.

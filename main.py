@@ -40,8 +40,8 @@ if __name__ == '__main__':
         max_episode_steps=1000,
         kwargs = {
             "visualize": args.agents == 1, 
-            "save_motion_path": "./test.csv", 
-            "data_dir": "/home/robin/Desktop/rug-bachelor-project/data"
+            # "save_motion_path": "./test.csv", 
+            "data_dir": "../rug-bachelor-project/data"
         }
     )
 
