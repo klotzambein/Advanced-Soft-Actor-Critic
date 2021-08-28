@@ -7,8 +7,8 @@ from pathlib import Path
 
 import numpy as np
 
-import algorithm.config_helper as config_helper
-from algorithm.utils import EnvException
+from . import config_helper
+from .utils import EnvException
 
 from .agent import Agent
 from .sac_base import SAC_Base
@@ -85,7 +85,7 @@ class Main(object):
 
     def _init_env(self):
         if self.base_config['env_type'] == 'UNITY':
-            from algorithm.env_wrapper.unity_wrapper import UnityWrapper
+            from .env_wrapper.unity_wrapper import UnityWrapper
 
             if self.run_in_editor:
                 self.env = UnityWrapper(train_mode=self.train_mode,
@@ -100,7 +100,7 @@ class Main(object):
                                         n_agents=self.base_config['n_agents'])
 
         elif self.base_config['env_type'] == 'GYM':
-            from algorithm.env_wrapper.gym_wrapper import GymWrapper
+            from .env_wrapper.gym_wrapper import GymWrapper
 
             self.env = GymWrapper(train_mode=self.train_mode,
                                   env_name=self.base_config['build_path'],
@@ -243,8 +243,8 @@ class Main(object):
 
             self._log_episode_info(iteration, time.time() - iter_time, agents)
 
-            if self.train_mode and (p := self.model_abs_dir.joinpath('save_model')).exists():
-                self.sac.save_model()
+            p = self.model_abs_dir.joinpath('save_model')
+            if self.train_mode and p.exists():
                 p.unlink()
 
             iteration += 1

@@ -10,7 +10,7 @@ from mlagents_envs.side_channel.engine_configuration_channel import (
 from mlagents_envs.side_channel.environment_parameters_channel import \
     EnvironmentParametersChannel
 
-from algorithm.utils import EnvException
+from ..utils import EnvException
 
 logger = logging.getLogger('UnityWrapper')
 logger.setLevel(level=logging.INFO)

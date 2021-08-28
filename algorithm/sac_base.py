@@ -1471,7 +1471,8 @@ class SAC_Base(object):
             )
         """
 
-        if (sampled := self.replay_buffer.sample()) is None:
+        sampled = self.replay_buffer.sample()
+        if sampled is None:
             return None
 
         """
@@ -1533,7 +1534,8 @@ class SAC_Base(object):
                           rnn_state if self.use_rnn else None)
 
     def train(self):
-        if (train_data := self._sample()) is None:
+        train_data = self._sample()
+        if train_data is None:
             return 0
 
         """
